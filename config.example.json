@@ -1,0 +1,10 @@
+{
+  "pgHost": "nas.example.lan",
+  "pgPort": 5432,
+  "pgUser": "nasmem",
+  "pgPassword": "CHANGE_ME",
+  "pgDatabase": "nasmem",
+  "embed": false,
+  "contextLimit": 6,
+  "projectAliases": { "youtube-mtg-worktree": "youtube-mtg" }
+}
