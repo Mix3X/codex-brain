@@ -133,3 +133,42 @@ test("an open stdin cannot stall a hook past its hard deadline", async () => {
   assert.deepEqual(JSON.parse(output), {});
   assert.ok(Date.now() - start < 6000);
 });
+
+
+test("explicit shared config persists for root MCP and hooks without sharing state", () => {
+  const rootHome = temp();
+  const shared = join(temp(), "it's a shared config.json");
+  writeFileSync(shared, JSON.stringify({ pgHost: "nas", pgPassword: "not-in-installed-files" }));
+  const calls = [];
+  const run = (_cmd, args, options) => { calls.push({ args, options }); return { status: 0 }; };
+  const home = join(rootHome, ".codex");
+  const result = install({ home, root: "/tmp/brain", configPath: shared, run });
+  assert.deepEqual(calls[1].args.slice(0, 5), ["mcp", "add", "brain", "--env", `CODEX_BRAIN_CONFIG=${shared}`]);
+  assert.equal(calls[1].options.env.CODEX_HOME, home);
+  const hooks = JSON.parse(readFileSync(result.hooksPath));
+  for (const event of EVENTS) {
+    const command = hooks.hooks[event][0].hooks[0].command;
+    const prefix = command.slice(0, command.indexOf(` '${process.execPath}'`));
+    const probe = spawnSync("sh", ["-c", `${prefix} printenv CODEX_BRAIN_CONFIG`], { encoding: "utf8" });
+    assert.equal(probe.status, 0);
+    assert.equal(probe.stdout.trim(), shared);
+  }
+  assert.equal(readFileSync(result.hooksPath, "utf8").includes("not-in-installed-files"), false);
+  const loaded = loadConfig({ CODEX_BRAIN_CONFIG: shared }, rootHome);
+  assert.equal(loaded.pgHost, "nas");
+  assert.equal(loaded.stateDir, join(rootHome, ".codex-brain"));
+  install({ home, root: "/tmp/brain", configPath: shared, run });
+  assert.deepEqual(JSON.parse(readFileSync(result.hooksPath)), hooks);
+});
+
+test("invalid explicit config is rejected before changing Codex setup", () => {
+  const home = temp();
+  const configPath = join(home, "config.json");
+  const run = () => { throw new Error("CLI must not run"); };
+  assert.throws(() => install({ home, configPath, run }), /file not found/);
+  writeFileSync(configPath, "bad json");
+  assert.throws(() => install({ home, configPath, run }), /Invalid brain/);
+  writeFileSync(configPath, "{}");
+  assert.throws(() => install({ home, configPath, run }), /no Postgres/);
+  assert.deepEqual(readdirSync(home), ["config.json"]);
+});

@@ -6,6 +6,7 @@ const client = new Client({ name: "codex-brain-check", version: "1.0.0" });
 try {
   await client.connect(new StdioClientTransport({
     command: process.execPath,
+    env: process.env,
     args: [fileURLToPath(new URL("../src/mcp-server.js", import.meta.url))],
   }));
   const { tools } = await client.listTools();

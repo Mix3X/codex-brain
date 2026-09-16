@@ -56,6 +56,27 @@ et configure le serveur MCP `brain`. Des sauvegardes datées de `hooks.json` et
 pas les hooks. Le dossier du dépôt doit rester présent à son emplacement installé.
 L'installation Claude est indépendante et reste utilisable.
 
+## Sessions root ou autre compte
+
+Chaque compte doit installer son propre MCP et ses hooks : une installation pour
+l’utilisateur normal ne configure pas `/root/.codex`. Pour réutiliser explicitement
+une configuration NAS existante, sans copier ses secrets :
+
+```bash
+# Dans une session root, depuis le dépôt (adapter le chemin utilisateur).
+node scripts/install.js --config /home/utilisateur/.claude-brain/config.json
+CODEX_BRAIN_CONFIG=/home/utilisateur/.claude-brain/config.json npm run check
+```
+
+`--config` valide le fichier puis enregistre son chemin absolu dans l’environnement
+du MCP et dans les commandes des cinq hooks. Ce compte doit pouvoir lire le fichier.
+Les variables `CODEX_BRAIN_CONFIG` / `BRAIN_CONFIG` fournies à l’installation sont
+également conservées. Réutiliser la même option lors d’une réinstallation.
+Aucun accès à un autre compte n’est déduit automatiquement de `SUDO_USER`.
+La file et les logs restent propres au compte courant (`/root/.codex-brain` pour
+root), sauf `CODEX_BRAIN_STATE_DIR` explicite. Les paramètres et hooks de l’autre
+compte ne sont pas modifiés. Redémarrer Codex et approuver les hooks via `/hooks`.
+
 ## Connexion et projets
 
 Priorité : `CODEX_BRAIN_CONFIG`, `BRAIN_CONFIG`, `~/.codex-brain/config.json`, puis
